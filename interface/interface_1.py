@@ -2,6 +2,7 @@ import customtkinter
 from tkinter import *
 from tkinter import filedialog as fd
 from PIL import Image
+from canvas_image import CanvasImage
 
 from tkinter.messagebox import showinfo
 customtkinter.set_appearance_mode("System") 
@@ -10,7 +11,7 @@ customtkinter.set_default_color_theme("green")  # Themes: "blue" (standard), "gr
 
 class App(customtkinter.CTk):
     def __init__(self):
-        super().__init__()
+        super().__init__()       
         self.width = 1200
         self.height = 600
         self.title("Trabalho de PAI")
@@ -30,6 +31,9 @@ class App(customtkinter.CTk):
         self.img_label = customtkinter.CTkLabel(self, text="")
         self.img_label.grid(row = 0, column = 1)
 
+        image_path = "C:/Users/gumar/faculdade/Estudos/EstudosPython/customTkinter/image_zoom/batman.jpg"
+        self.img_canvas = CanvasImage(self, image_path)
+        self.img_canvas.grid(row=0, column=1, pady = 10, padx = 10)  # show widge
 
         self.configure_sidebar()
 
@@ -72,11 +76,9 @@ class App(customtkinter.CTk):
 
         self.open_img(file_path)
 
+    
     def open_img(self, file_path):
-        # Cria um objeto de imagem
-        img = customtkinter.CTkImage(light_image = Image.open(file_path).convert('L'), size=(800,550))
-        # Cria um widget Label
-        self.img_label.configure(image = img)
+        self.img_canvas.update_img(file_path)
 
 if __name__ == "__main__":
     app = App()
