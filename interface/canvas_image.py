@@ -4,49 +4,27 @@ import math
 import warnings
 import tkinter as tk
 import customtkinter
-
-from tkinter import ttk
+from auto_scrollbar import AutoScrollbar
 from PIL import Image, ImageTk
 
-class AutoScrollbar(ttk.Scrollbar):
-    """ A scrollbar that hides itself if it's not needed. Works only for grid geometry manager """
-    def set(self, lo, hi):
-        if float(lo) <= 0.0 and float(hi) >= 1.0:
-            self.grid_remove()
-        else:
-            self.grid()
-            ttk.Scrollbar.set(self, lo, hi)
-
-    def pack(self, **kw):
-        raise tk.TclError('Cannot use pack with the widget ' + self.__class__.__name__)
-
-    def place(self, **kw):
-        raise tk.TclError('Cannot use place with the widget ' + self.__class__.__name__)
-
 class CanvasImage:
-    """ Display and zoom image """
     def __init__(self, placeholder, path):
-        """ Initialize the ImageFrame """
+        """ Inicializando o Frame da imagem"""
         self.imscale = 1.0  # scale for the canvas image zoom, public for outer classes
-        self.__delta = 1.3  # zoom magnitude
+        self.__delta = 1.3  # magnitude do zoom
         self.__filter = Image.ANTIALIAS  # could be: NEAREST, BILINEAR, BICUBIC and ANTIALIAS
         self.__previous_state = 0  # previous state of the keyboard
-        self.path = path  # path to the image, should be public for outer classes
+        self.path = path  # Caminho da imagem
+
         # Create ImageFrame in placeholder widget
         self.__imframe = customtkinter.CTkFrame(placeholder, corner_radius=0)  # placeholder of the ImageFrame object
        
-        # Vertical and horizontal scrollbars for canvas
-        hbar = AutoScrollbar(self.__imframe, orient='horizontal')
-        vbar = AutoScrollbar(self.__imframe, orient='vertical')
-        hbar.grid(row=1, column=0, sticky='we')
-        vbar.grid(row=0, column=1, sticky='ns')
+        self.setup_scrollbar()
        
-        # Create canvas and bind it with scrollbars. Public for outer classes
-        self.canvas = tk.Canvas(self.__imframe, highlightthickness=0, xscrollcommand=hbar.set, yscrollcommand=vbar.set, bg = "#000000")
+        # Criação do canvas e binding com as scrollbars
+        self.canvas = tk.Canvas(self.__imframe, highlightthickness=0, xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set, bg = "#000000")
         self.canvas.grid(row=0, column=0, sticky='nswe')
         self.canvas.update()  # wait till canvas is created
-        hbar.configure(command=self.__scroll_x)  # bind scrollbars to the canvas
-        vbar.configure(command=self.__scroll_y)
 
         # Binding dos eventos do teclado no Canvas
         self.canvas.bind('<Configure>', lambda event: self.__show_image())  # canvas resized
@@ -66,13 +44,27 @@ class CanvasImage:
         self.__band_width = 1024  # width of the tile band
 
         Image.MAX_IMAGE_PIXELS = 1000000000  # suppress DecompressionBombError for the big image
-        
+        self.image_setup()
+
+    def setup_scrollbar(self):
+        # Setup do scrollbar
+        self.hbar = AutoScrollbar(self.__imframe, orient='horizontal')
+        self.vbar = AutoScrollbar(self.__imframe, orient='vertical')
+        self.hbar.grid(row=1, column=0, sticky='we')
+        self.vbar.grid(row=0, column=1, sticky='ns')
+
+        self.hbar.configure(command=self.__scroll_x)  # bind scrollbars to the canvas
+        self.vbar.configure(command=self.__scroll_y)
+
+    def image_setup(self):
         with warnings.catch_warnings():  # suppress DecompressionBombWarning
             warnings.simplefilter('ignore')
-            self.__image = Image.open(self.path)  # Abre a imagem mas ainda não carrega
-        
+            img = Image.open(self.path)
+            self.canvas.image = img
+            self.__image = img  # Seta a imagem mas ainda não cria
+            
         self.imwidth, self.imheight = self.__image.size
-        
+
         if self.imwidth * self.imheight > self.__huge_size * self.__huge_size and \
            self.__image.tile[0][0] == 'raw':  # only raw images could be tiled
             self.__huge = True  # image is huge
@@ -139,19 +131,12 @@ class CanvasImage:
     def redraw_figures(self):
         """ Dummy function to redraw figures in the children classes """
         pass
-
-    def update_img(self, img_path):
-        self.path = img_path
-        print(self.path)
-        img =  ImageTk.PhotoImage(Image.open(self.path))
-        self.image_on_canvas = self.canvas.create_image(0, 0, image = img)
-        self.canvas.itemconfig(self.image_on_canvas, image = img)
-
+    
     def grid(self, **kw):
         """ Put CanvasImage widget on the parent widget """
-        self.__imframe.grid(**kw)  # place CanvasImage widget on the grid
-        self.__imframe.grid(sticky='nswe')  # make frame container sticky
-        self.__imframe.rowconfigure(0, weight=1)  # make canvas expandable
+        self.__imframe.grid(**kw)  # insere o canvas no grid
+        self.__imframe.grid(sticky='nswe')  
+        self.__imframe.rowconfigure(0, weight=1)  
         self.__imframe.columnconfigure(0, weight=1)
 
     def pack(self, **kw):
@@ -174,27 +159,27 @@ class CanvasImage:
         self.canvas.yview(*args)  # scroll vertically
         self.__show_image()  # redraw the image
 
+    # mostra a imagem no canvas
     def __show_image(self):
         """ Show image on the Canvas. Implements correct image zoom almost like in Google Maps """
-        box_image = self.canvas.coords(self.container)  # get image area
-        box_canvas = (self.canvas.canvasx(0),  # get visible area of the canvas
+        box_image = self.canvas.coords(self.container)  # pega a área do container(consequentemente da imagem)
+        box_canvas = (self.canvas.canvasx(0),  # pega a área visivel da imagem
                       self.canvas.canvasy(0),
                       self.canvas.canvasx(self.canvas.winfo_width()),
                       self.canvas.canvasy(self.canvas.winfo_height()))
-        box_img_int = tuple(map(int, box_image))  # convert to integer or it will not work properly
-        # Get scroll region box
+        box_img_int = tuple(map(int, box_image))  
+        # Pega a região de scroll
         box_scroll = [min(box_img_int[0], box_canvas[0]), min(box_img_int[1], box_canvas[1]),
                       max(box_img_int[2], box_canvas[2]), max(box_img_int[3], box_canvas[3])]
-        # Horizontal part of the image is in the visible area
+        # Parte horizontal da imagem visível
         if  box_scroll[0] == box_canvas[0] and box_scroll[2] == box_canvas[2]:
             box_scroll[0]  = box_img_int[0]
             box_scroll[2]  = box_img_int[2]  
-        # Vertical part of the image is in the visible area
+        # Parte vertical da imagem visível
         if  box_scroll[1] == box_canvas[1] and box_scroll[3] == box_canvas[3]:
             box_scroll[1]  = box_img_int[1]
             box_scroll[3]  = box_img_int[3]
-            
-        # Convert scroll region to tuple and to integer
+        # Converte a região de scroll para tupla e inteiro
         self.canvas.configure(scrollregion=tuple(map(int, box_scroll)))  # set scroll region
         x1 = max(box_canvas[0] - box_image[0], 0)  # get coordinates (x1,y1,x2,y2) of the image tile
         y1 = max(box_canvas[1] - box_image[1], 0)
@@ -216,10 +201,10 @@ class CanvasImage:
                                      int(x2 / self.__scale), int(y2 / self.__scale)))
             #
             imagetk = ImageTk.PhotoImage(image.resize((int(x2 - x1), int(y2 - y1)), self.__filter))
-            imageid = self.canvas.create_image(max(box_canvas[0], box_img_int[0]),
+            self.imageid = self.canvas.create_image(max(box_canvas[0], box_img_int[0]),
                                                max(box_canvas[1], box_img_int[1]),
                                                anchor='nw', image=imagetk)
-            self.canvas.lower(imageid)  # set image into background
+            self.canvas.lower(self.imageid)  # set image into background
             self.canvas.imagetk = imagetk  # keep an extra reference to prevent garbage-collection
 
     def __move_from(self, event):
@@ -296,6 +281,7 @@ class CanvasImage:
         else:  # image is totally in RAM
             return self.__pyramid[0].crop(bbox)
 
+    # Destroi este objeto
     def destroy(self):
         """ ImageFrame destructor """
         self.__image.close()
