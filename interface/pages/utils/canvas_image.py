@@ -1,30 +1,27 @@
-# -*- coding: utf-8 -*-
-# Advanced zoom for images of various types from small to huge up to several GB
 import math
 import warnings
 import tkinter as tk
 import customtkinter
-from auto_scrollbar import AutoScrollbar
+from . auto_scrollbar import AutoScrollbar
 from PIL import Image, ImageTk
 
 class CanvasImage:
     def __init__(self, placeholder, path):
         """ Inicializando o Frame da imagem"""
-        self.imscale = 1.0  # scale for the canvas image zoom, public for outer classes
+        self.imscale = 1.0  # escala para o zoom da imagem
         self.__delta = 1.3  # magnitude do zoom
-        self.__filter = Image.ANTIALIAS  # could be: NEAREST, BILINEAR, BICUBIC and ANTIALIAS
-        self.__previous_state = 0  # previous state of the keyboard
+        self.__filter = Image.ANTIALIAS  
+        self.__previous_state = 0  # Estado anterior do teclado
         self.path = path  # Caminho da imagem
 
-        # Create ImageFrame in placeholder widget
-        self.__imframe = customtkinter.CTkFrame(placeholder, corner_radius=0)  # placeholder of the ImageFrame object
+        self.__imframe = customtkinter.CTkFrame(placeholder, corner_radius=0)  # placeholder para o objeto de ImageFrame
        
         self.setup_scrollbar()
        
         # Criação do canvas e binding com as scrollbars
         self.canvas = tk.Canvas(self.__imframe, highlightthickness=0, xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set, bg = "#000000")
         self.canvas.grid(row=0, column=0, sticky='nswe')
-        self.canvas.update()  # wait till canvas is created
+        self.canvas.update() 
 
         # Binding dos eventos do teclado no Canvas
         self.canvas.bind('<Configure>', lambda event: self.__show_image())  # canvas resized
@@ -59,7 +56,7 @@ class CanvasImage:
     def image_setup(self):
         with warnings.catch_warnings():  # suppress DecompressionBombWarning
             warnings.simplefilter('ignore')
-            img = Image.open(self.path)
+            img = Image.open(self.path).convert('L')
             self.canvas.image = img
             self.__image = img  # Seta a imagem mas ainda não cria
             
@@ -67,17 +64,17 @@ class CanvasImage:
 
         if self.imwidth * self.imheight > self.__huge_size * self.__huge_size and \
            self.__image.tile[0][0] == 'raw':  # only raw images could be tiled
-            self.__huge = True  # image is huge
+            self.__huge = True  # Imagem muito grande
             self.__offset = self.__image.tile[0][2]  # initial tile offset
             self.__tile = [
-                self.__image.tile[0][0],  # it have to be 'raw'
+                self.__image.tile[0][0], 
                 [0, 0, self.imwidth, 0],  # tile extent (a rectangle)
                 self.__offset,
                 self.__image.tile[0][3]
             ]  # list of arguments to the decoder
         self.__min_side = min(self.imwidth, self.imheight)  # get the smaller image side
         # Create image pyramid
-        self.__pyramid = [self.smaller()] if self.__huge else [Image.open(self.path)]
+        self.__pyramid = [self.smaller()] if self.__huge else [Image.open(self.path).convert('L')]
         # Set ratio coefficient for image pyramid
         self.__ratio = max(self.imwidth, self.imheight) / self.__huge_size if self.__huge else 1.0
         self.__curr_img = 0  # current image from the pyramid
@@ -118,7 +115,7 @@ class CanvasImage:
             self.__tile[1][3] = band  # set band width
             self.__tile[2] = self.__offset + self.imwidth * i * 3  # tile offset (3 bytes per pixel)
             self.__image.close()
-            self.__image = Image.open(self.path)  # reopen / reset image
+            self.__image = Image.open(self.path).convert('L')  # reopen / reset image
             self.__image.size = (self.imwidth, band)  # set size of the tile band
             self.__image.tile = [self.__tile]  # set tile
             cropped = self.__image.crop((0, 0, self.imwidth, band))  # crop tile band
@@ -191,7 +188,7 @@ class CanvasImage:
                 self.__tile[1][3] = h  # set the tile band height
                 self.__tile[2] = self.__offset + self.imwidth * int(y1 / self.imscale) * 3
                 self.__image.close()
-                self.__image = Image.open(self.path)  # reopen / reset image
+                self.__image = Image.open(self.path).convert('L')  # reopen / reset image
                 self.__image.size = (self.imwidth, h)  # set size of the tile band
                 self.__image.tile = [self.__tile]
                 image = self.__image.crop((int(x1 / self.imscale), 0, int(x2 / self.imscale), h))
@@ -274,7 +271,7 @@ class CanvasImage:
             self.__tile[1][3] = band  # set the tile height
             self.__tile[2] = self.__offset + self.imwidth * bbox[1] * 3  # set offset of the band
             self.__image.close()
-            self.__image = Image.open(self.path)  # reopen / reset image
+            self.__image = Image.open(self.path).convert('L')  # reopen / reset image
             self.__image.size = (self.imwidth, band)  # set size of the tile band
             self.__image.tile = [self.__tile]
             return self.__image.crop((bbox[0], 0, bbox[2], band))
