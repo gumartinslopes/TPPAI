@@ -1,7 +1,10 @@
 import customtkinter as ctk
+import tkinter as tk
+
 from tkinter import messagebox
 from tkinter import filedialog as fd
 from . utils.canvas_image import CanvasImage
+from . utils.custom_canvas import CustomCanvas
 
 class ImageVisualizer(ctk.CTkFrame):
     def __init__(self, parent, controller):   
@@ -10,7 +13,7 @@ class ImageVisualizer(ctk.CTkFrame):
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure((2, 3), weight=0)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
+        self.grid_rowconfigure((0), weight=1)
 
         # inicialização do label de imagem
         self.img_label = ctk.CTkLabel(self, text="")
@@ -20,7 +23,7 @@ class ImageVisualizer(ctk.CTkFrame):
         self.setup_canvas()
 
         self.setup_sidebar()
-    
+
     def update_image(self, path):
         self.image_path = path
         self.setup_canvas()
@@ -49,8 +52,20 @@ class ImageVisualizer(ctk.CTkFrame):
             self.img_canvas.destroy()
             self.setup_canvas()
     
+    def set_contrast(self, factor):
+        self.windowing_label.configure(text = 'Escala de Tons de Cinza {0:.2f}'.format(factor))
+        self.img_canvas.set_contrast(factor=factor)
+
     # criação de um novo canvas
     def setup_canvas(self):
        if(self.image_path != ""):
-        self.img_canvas = CanvasImage(self, self.image_path)
+        # self.img_canvas = CanvasImage(self, self.image_path)
+        # self.img_canvas.grid(row=0, column=1, pady = 10, padx = 10)
+        self.img_canvas = CustomCanvas(self, self.image_path)
         self.img_canvas.grid(row=0, column=1, pady = 10, padx = 10)
+        self.img_canvas.grid(sticky='nswe')  
+
+        self.windowing_label = ctk.CTkLabel(self, text=f'Escala de Tons de Cinza: {0}')
+        self.windowing_label.grid(row = 1, column = 1, pady = 10, padx = 10)
+        self.windowing_slider = ctk.CTkSlider(master=self, from_=0.1, to=2.0, command=self.set_contrast)
+        self.windowing_slider.grid(row = 2, column =1, pady = 10, padx = 10)

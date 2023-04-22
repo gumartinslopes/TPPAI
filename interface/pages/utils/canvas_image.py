@@ -3,7 +3,7 @@ import warnings
 import tkinter as tk
 import customtkinter
 from . auto_scrollbar import AutoScrollbar
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageEnhance
 
 class CanvasImage:
     def __init__(self, placeholder, path):
@@ -57,6 +57,7 @@ class CanvasImage:
         with warnings.catch_warnings():  # suppress DecompressionBombWarning
             warnings.simplefilter('ignore')
             img = Image.open(self.path).convert('L')
+            self.original_img = Image.open(self.path).convert('L')
             self.canvas.image = img
             self.__image = img  # Seta a imagem mas ainda não cria
             
@@ -98,14 +99,17 @@ class CanvasImage:
         aspect_ratio2 = w2 / h2  # it equals to 1.0
         if aspect_ratio1 == aspect_ratio2:
             image = Image.new('RGB', (int(w2), int(h2)))
+           # self.original_img = Image.new('RGB', (int(w2), int(h2)))
             k = h2 / h1  # compression ratio
             w = int(w2)  # band length
         elif aspect_ratio1 > aspect_ratio2:
             image = Image.new('RGB', (int(w2), int(w2 / aspect_ratio1)))
+           # self.original_img = Image.new('RGB', (int(w2), int(w2 / aspect_ratio1)))
             k = h2 / w1  # compression ratio
             w = int(w2)  # band length
         else:  # aspect_ratio1 < aspect_ration2
             image = Image.new('RGB', (int(h2 * aspect_ratio1), int(h2)))
+            #self.original_img = Image.new('RGB', (int(h2 * aspect_ratio1), int(h2)))
             k = h2 / h1  # compression ratio
             w = int(h2 * aspect_ratio1)  # band length
         i, j, n = 0, 1, round(0.5 + self.imheight / self.__band_width)
@@ -115,9 +119,16 @@ class CanvasImage:
             self.__tile[1][3] = band  # set band width
             self.__tile[2] = self.__offset + self.imwidth * i * 3  # tile offset (3 bytes per pixel)
             self.__image.close()
+            
             self.__image = Image.open(self.path).convert('L')  # reopen / reset image
+            self.original_img = Image.open(self.path).convert('L')  # reopen / reset image
+            
             self.__image.size = (self.imwidth, band)  # set size of the tile band
+            self.original_img.size = (self.imwidth, band)
+            
             self.__image.tile = [self.__tile]  # set tile
+            self.original_img.tile = [self.__tile]
+            
             cropped = self.__image.crop((0, 0, self.imwidth, band))  # crop tile band
             image.paste(cropped.resize((w, int(band * k)+1), self.__filter), (0, int(i * k)))
             i += band
@@ -135,6 +146,15 @@ class CanvasImage:
         self.__imframe.grid(sticky='nswe')  
         self.__imframe.rowconfigure(0, weight=1)  
         self.__imframe.columnconfigure(0, weight=1)
+
+    def update_contrast(self, factor):
+        self.contrast_factor = float(factor)
+        enhanced_image = ImageEnhance.Contrast(
+            self.__image).enhance(self.contrast_factor)
+        self.image = enhanced_image.convert('L')
+        self.photo_image = ImageTk.PhotoImage(self.image)
+        #self.imageid.paste(enhanced_image)
+        #self.canvas.itemconfig(self.__image, image=self.photo_image)
 
     def pack(self, **kw):
         """ Exception: cannot use pack with this widget """
@@ -183,20 +203,33 @@ class CanvasImage:
         x2 = min(box_canvas[2], box_image[2]) - box_image[0]
         y2 = min(box_canvas[3], box_image[3]) - box_image[1]
         if int(x2 - x1) > 0 and int(y2 - y1) > 0:  # show image if it in the visible area
-            if self.__huge and self.__curr_img < 0:  # show huge image
+            # mostra a imagem em tamanho grande
+            if self.__huge and self.__curr_img < 0:  
                 h = int((y2 - y1) / self.imscale)  # height of the tile band
                 self.__tile[1][3] = h  # set the tile band height
                 self.__tile[2] = self.__offset + self.imwidth * int(y1 / self.imscale) * 3
+
+                # resetando a imagem
                 self.__image.close()
                 self.__image = Image.open(self.path).convert('L')  # reopen / reset image
+                self.original_img.close()
+                self.original_img = Image.open(self.path).convert('L')  # reopen / reset image
+                
                 self.__image.size = (self.imwidth, h)  # set size of the tile band
+                self.original_img.size = (self.imwidth, h)  # set size of the tile band
+                
                 self.__image.tile = [self.__tile]
+                self.original_img.tile = [self.__tile]
+                
                 image = self.__image.crop((int(x1 / self.imscale), 0, int(x2 / self.imscale), h))
             else:  # show normal image
                 image = self.__pyramid[max(0, self.__curr_img)].crop(  # crop current img from pyramid
                                     (int(x1 / self.__scale), int(y1 / self.__scale),
                                      int(x2 / self.__scale), int(y2 / self.__scale)))
-            #
+                
+            
+                
+            
             imagetk = ImageTk.PhotoImage(image.resize((int(x2 - x1), int(y2 - y1)), self.__filter))
             self.imageid = self.canvas.create_image(max(box_canvas[0], box_img_int[0]),
                                                max(box_canvas[1], box_img_int[1]),
@@ -270,10 +303,18 @@ class CanvasImage:
             band = bbox[3] - bbox[1]  # width of the tile band
             self.__tile[1][3] = band  # set the tile height
             self.__tile[2] = self.__offset + self.imwidth * bbox[1] * 3  # set offset of the band
+           
             self.__image.close()
             self.__image = Image.open(self.path).convert('L')  # reopen / reset image
+           
+            self.original_img.close()
+            self.original_img = Image.open(self.path).convert('L')  # reopen / reset image
+           
             self.__image.size = (self.imwidth, band)  # set size of the tile band
             self.__image.tile = [self.__tile]
+            self.original_img.size = (self.imwidth, band)  # set size of the tile band
+            self.original_img.tile = [self.__tile]
+           
             return self.__image.crop((bbox[0], 0, bbox[2], band))
         else:  # image is totally in RAM
             return self.__pyramid[0].crop(bbox)
@@ -282,6 +323,7 @@ class CanvasImage:
     def destroy(self):
         """ ImageFrame destructor """
         self.__image.close()
+        self.original_img.close()
         map(lambda i: i.close, self.__pyramid)  # close all pyramid images
         del self.__pyramid[:]  # delete pyramid list
         del self.__pyramid  # delete pyramid variable
