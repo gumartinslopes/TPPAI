@@ -3,14 +3,13 @@ import tkinter as tk
 
 from tkinter import messagebox
 from tkinter import filedialog as fd
-from . utils.canvas_image import CanvasImage
-from . utils.custom_canvas import CustomCanvas
+from . utils.image_canvas import ImageCanvas
 
 class ImageVisualizer(ctk.CTkFrame):
     def __init__(self, parent, controller):   
         ctk.CTkFrame.__init__(self,parent)
 
-        # configure grid layout (4x4)
+        # configurações do grid
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure((2, 3), weight=0)
         self.grid_rowconfigure((0), weight=1)
@@ -19,15 +18,16 @@ class ImageVisualizer(ctk.CTkFrame):
         self.img_label = ctk.CTkLabel(self, text="")
         self.img_label.grid(row = 0, column = 1)
         
-        self.image_path = controller._img_path
+        self.img_path = controller._img_path
         self.setup_canvas()
 
         self.setup_sidebar()
-
+    
     def update_image(self, path):
-        self.image_path = path
+        self.img_path = path
         self.setup_canvas()
-        
+    
+    # configurações iniciais da sidebar
     def setup_sidebar(self):
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
@@ -47,21 +47,22 @@ class ImageVisualizer(ctk.CTkFrame):
         if(file_path == ""):
             messagebox.showwarning("Aviso", "Nenhuma imagem foi selecionada!")
         else:   
-            self.image_path = file_path     
+            self.img_path = file_path     
             #substituição do canvas anterior
             self.img_canvas.destroy()
             self.setup_canvas()
     
+    #altera o contraste da imagem
     def set_contrast(self, factor):
         self.windowing_label.configure(text = 'Escala de Tons de Cinza {0:.2f}'.format(factor))
         self.img_canvas.set_contrast(factor=factor)
 
     # criação de um novo canvas
     def setup_canvas(self):
-       if(self.image_path != ""):
-        # self.img_canvas = CanvasImage(self, self.image_path)
+       if(self.img_path != ""):
+        # self.img_canvas = CanvasImage(self, self.img_path)
         # self.img_canvas.grid(row=0, column=1, pady = 10, padx = 10)
-        self.img_canvas = CustomCanvas(self, self.image_path)
+        self.img_canvas = ImageCanvas(self, self.img_path)
         self.img_canvas.grid(row=0, column=1, pady = 10, padx = 10)
         self.img_canvas.grid(sticky='nswe')  
 

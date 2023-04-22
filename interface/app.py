@@ -3,6 +3,10 @@ from pages.initial_page import InitialPage
 from pages.image_visualizer import ImageVisualizer
 from tkinter import messagebox
 from tkinter import filedialog as fd
+import os
+
+# setup do tema inicial
+ctk.set_default_color_theme(f"{os.getcwd()}/themes/flamingo.json")
 
 class App(ctk.CTk):
     def __init__(self):
@@ -13,7 +17,8 @@ class App(ctk.CTk):
         self.setup_window()
         self.setup_container()
         self.setup_frames() 
-
+        
+        # carregando página inicial
         self.show_initial_page()
 
     def setup_container(self):
