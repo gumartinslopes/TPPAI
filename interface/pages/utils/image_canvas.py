@@ -1,6 +1,7 @@
 import tkinter as tk
 from PIL import Image, ImageEnhance, ImageTk
 
+
 class ImageCanvas(tk.Canvas):
     def __init__(self, parent, image_path):
         super().__init__(parent)
@@ -10,11 +11,11 @@ class ImageCanvas(tk.Canvas):
         self.original_image = self.image.copy()
         self.photo_image = ImageTk.PhotoImage(self.image)
         self.create_image(0, 0, anchor=tk.NW, image=self.photo_image)
-        #setup do fator de contraste e escala
+        # setup do fator de contraste e escala
         self.contrast_factor = 1.0
         self.scale_factor = 1.0
 
-        self.config (background="#000000", highlightthickness=0, relief='ridge')
+        self.config(background="#000000", highlightthickness=0, relief='ridge')
         self.setup_bindings()
 
     # Setup dos comandos do teclado
@@ -24,12 +25,25 @@ class ImageCanvas(tk.Canvas):
         self.bind("<ButtonPress-1>", self.start_drag)
         self.bind("<B1-Motion>", self.drag_image)
 
-    def set_contrast(self, factor):
-        self.contrast_factor = float(factor)
-        enhanced_image = ImageEnhance.Contrast(
-            self.original_image).enhance(self.contrast_factor)
-        self.image = enhanced_image.convert('L')
-        self.photo_image = ImageTk.PhotoImage(self.image)        
+    def set_contrast(self, factor_1, factor_2):
+
+        # Converte a ImageTk.PhotoImage para uma imagem do Pillow
+        pil_img = self.original_image.copy()
+
+        # Determina os valores mínimos e máximos da janela
+        min_pixel = float(factor_1)
+        max_pixel = float(factor_2)
+
+        # Aplica o contraste por janelamento
+        scale = 255 / (max_pixel - min_pixel)
+
+        # Apply the scaling factor and shift the image
+        new_img = pil_img.point(lambda x: (x - min_pixel) * scale)
+
+        self.image = new_img.convert('L')
+
+        # Converte a imagem do Pillow de volta para ImageTk.PhotoImage
+        self.photo_image = ImageTk.PhotoImage(self.image)
         self.itemconfig(self.find_all()[0], image=self.photo_image)
         self.resize_image(self.winfo_width(), self.winfo_height())
 
