@@ -80,7 +80,12 @@ class ImageVisualizer(ctk.CTkFrame):
             self.img_canvas.grid(sticky='nswe')
 
             self.windowing_label_3 = ctk.CTkLabel(
-                self, text=f'Contraste por Janelamento')
+                self, text=f'Contraste por Janelamento',
+                width=120,
+                height=25,
+                fg_color=("white", "gray75"),
+                text_color="black",
+                corner_radius=8)
             self.windowing_label_3.grid(row=1, column=1, pady=10, padx=10)
 
             s1 = ctk.CTkSlider(master=self)
