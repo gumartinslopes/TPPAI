@@ -4,6 +4,10 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import filedialog as fd
 from . utils.image_canvas import ImageCanvas
+from . utils.result_canvas import ResultCanvas
+from . utils.ImageProcess import process_image
+
+from PIL import Image
 
 
 class ImageVisualizer(ctk.CTkFrame):
@@ -70,7 +74,22 @@ class ImageVisualizer(ctk.CTkFrame):
                 self.img_canvas.set_contrast(
                     factor_1=factor_1, factor_2=self.windowing_slider_1.get())
 
-    # criação de um novo canvas
+        # criação de um novo canvas
+
+    def proc_img(self):
+        image_to_process = self.img_canvas.image
+        image_path = self.img_canvas.image_path
+        np_segmented_img = process_image(image_to_process, image_path)
+        self.segmented_img = Image.fromarray(np_segmented_img)
+        self.img_canvas.destroy()
+        self.setup_result_canvas()
+
+    def setup_result_canvas(self):
+
+        self.img_canvas = ResultCanvas(self, self.segmented_img)
+        self.img_canvas.grid(row=0, column=1, pady=10, padx=10)
+        self.img_canvas.grid(sticky='nswe')
+
     def setup_canvas(self):
         if (self.img_path != ""):
             # self.img_canvas = CanvasImage(self, self.img_path)
@@ -106,8 +125,11 @@ class ImageVisualizer(ctk.CTkFrame):
 
             self.windowing_label_1 = ctk.CTkLabel(
                 self, text='Limite Superior: {0:.0f}'.format(s1.get()))
-            self.windowing_label_1.grid(row=2, column=1, pady=10, padx=10)
+            self.windowing_label_1.grid(row=2, column=1, pady=10, padx=2)
 
             self.windowing_label_2 = ctk.CTkLabel(
                 self, text='Limite Inferior: {0:.0f}'.format(s2.get()))
-            self.windowing_label_2.grid(row=4, column=1, pady=10, padx=10)
+            self.windowing_label_2.grid(row=4, column=1, pady=10, padx=2)
+
+            self.process_button = ctk.CTkButton(
+                self, text="Processar Imagem", command=self.proc_img).grid(column=0, row=2)
